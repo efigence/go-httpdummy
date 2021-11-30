@@ -2,5 +2,12 @@
 body {
   background-color : #112233;
   color: lime;
-
 }
+
+table, th, td {
+  border: 1px solid #115599;
+}
+a, a:hover {
+  color: aqua;
+}
+

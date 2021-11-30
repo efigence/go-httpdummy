@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var inflightReq = mon.GlobalRegistry.MustRegister("conn.inflight", mon.NewRelativeIntegerGauge())
+
 type WebBackend struct {
 	l   *zap.SugaredLogger
 	r   *gin.Engine
@@ -20,8 +22,9 @@ type WebBackend struct {
 }
 
 type Config struct {
-	Logger     *zap.SugaredLogger `yaml:"-"`
-	ListenAddr string             `yaml:"listen_addr"`
+	Logger          *zap.SugaredLogger `yaml:"-"`
+	ListenAddr      string             `yaml:"listen_addr"`
+	LogHTTPRequests bool               `yaml:"log_http_requests"`
 }
 
 func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
@@ -44,7 +47,9 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	}
 	r.SetHTMLTemplate(t)
 	// for zap logging
-	r.Use(ginzap.Ginzap(w.l.Desugar(), time.RFC3339, false))
+	if cfg.LogHTTPRequests {
+		r.Use(ginzap.Ginzap(w.l.Desugar(), time.RFC3339, false))
+	}
 	//r.Use(ginzap.RecoveryWithZap(w.l.Desugar(), true))
 	// basic logging to stdout
 	//r.Use(gin.LoggerWithWriter(os.Stdout))
@@ -70,16 +75,55 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 			"title": c.Request.RemoteAddr,
 		})
 	})
+	r.GET("/slow/:duration", w.SlowRequest)
 	r.NoRoute(func(c *gin.Context) {
 		c.HTML(http.StatusNotFound, "404.tmpl", gin.H{
 			"notfound": c.Request.URL.Path,
 		})
 	})
-
+	r.GET("/routes", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "routes.tmpl", r.Routes())
+	})
 	return &w, nil
 }
 
 func (b *WebBackend) Run() error {
 	b.l.Infof("listening on %s", b.cfg.ListenAddr)
 	return b.r.Run(b.cfg.ListenAddr)
+}
+
+func (b *WebBackend) SlowRequest(c *gin.Context) {
+	duration := c.Param("duration")
+	interval, err := time.ParseDuration(duration)
+	if err != nil {
+		c.HTML(
+			http.StatusBadRequest, "error.tmpl",
+			gin.H{"msg": fmt.Sprintf("bad time: %s", err)})
+		return
+	}
+	inflightReq.Update(1)
+	defer inflightReq.Update(-1)
+	waitInterval := time.Second * 10
+	if interval < waitInterval*10 {
+		waitInterval = interval / 10
+	}
+	c.HTML(http.StatusOK, "slow_pre.tmpl",
+		gin.H{
+			"duration": interval.String(),
+			"interval": waitInterval.String(),
+		})
+	c.Writer.Flush()
+	end := time.After(interval)
+	// for longer requests, ping every 10s
+	// for shorter requests, take at least 10 packets
+	for {
+		select {
+		case _ = <-end:
+			c.HTML(http.StatusOK, "slow_post.tmpl", nil)
+			return
+		default:
+			time.Sleep(waitInterval)
+			c.Writer.Write([]byte(string("!\n"))) // newline because tools like curl linebuffer
+		}
+	}
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"embed"
-	"github.com/XANi/toolbox/project-templates/go-gin-embedded/web"
+	"github.com/efigence/go-httpdummy/web"
 	"github.com/efigence/go-mon"
 	"os"
 
@@ -67,6 +67,7 @@ func main() {
 	log.Errorf("Starting %s version: %s", app.Name, version)
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{Name: "help, h", Usage: "show help"},
+		cli.BoolFlag{Name: "log-http-requests", Usage: "log http requests"},
 		cli.StringFlag{
 			Name:   "listen-addr",
 			Value:  "127.0.0.1:3001",
@@ -80,33 +81,14 @@ func main() {
 			os.Exit(1)
 		}
 		w, err := web.New(web.Config{
-			Logger:     log,
-			ListenAddr: c.String("listen-addr"),
+			Logger:          log,
+			ListenAddr:      c.String("listen-addr"),
+			LogHTTPRequests: c.Bool("log-http-requests"),
 		}, webContent)
 		if err != nil {
 			log.Panicf("error starting web listener: %s", err)
 		}
 		return w.Run()
-	}
-	app.Commands = []cli.Command{
-		{
-			Name:    "rem",
-			Aliases: []string{"a"},
-			Usage:   "example cmd",
-			Action: func(c *cli.Context) error {
-				log.Warnf("running example cmd")
-				return nil
-			},
-		},
-		{
-			Name:    "add",
-			Aliases: []string{"a"},
-			Usage:   "example cmd",
-			Action: func(c *cli.Context) error {
-				log.Warnf("running example cmd")
-				return nil
-			},
-		},
 	}
 	// to sort do that
 	//sort.Sort(cli.FlagsByName(app.Flags))

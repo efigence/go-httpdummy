@@ -1,6 +1,6 @@
 # generate version number
 version=$(shell git describe --tags --long --always --dirty|sed 's/^v//')
-binfile=main
+binfile=httpdummy
 
 all:
 	go build -ldflags "-X main.version=$(version)" $(binfile).go

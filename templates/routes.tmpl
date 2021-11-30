@@ -1,0 +1,25 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/s/s.css">
+</head>
+<body>
+
+<table class="border container">
+    <tr>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Handler</th>
+    </tr>
+{{range .}}
+    <tr>
+    <td>{{.Method}}</td>
+    <td><a href="{{.Path}}">{{.Path}}</a></td>
+    <td>{{.Handler}}</td>
+    </tr>
+{{end}}
+</table>
+</body>
+</html>

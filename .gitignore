@@ -44,7 +44,8 @@ _testmain.go
 *.prof
 *.out
 *.static
-main
+go-httpdummy
+httpdummy
 *.arm
 *.arm64
 *.386
