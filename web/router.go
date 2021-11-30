@@ -14,6 +14,7 @@ import (
 )
 
 var inflightReq = mon.GlobalRegistry.MustRegister("conn.inflight", mon.NewRelativeIntegerGauge())
+var errReq = mon.GlobalRegistry.MustRegister("conn.err", mon.NewCounter())
 
 type WebBackend struct {
 	l   *zap.SugaredLogger
@@ -123,7 +124,11 @@ func (b *WebBackend) SlowRequest(c *gin.Context) {
 			return
 		default:
 			time.Sleep(waitInterval)
-			c.Writer.Write([]byte(string("!\n"))) // newline because tools like curl linebuffer
+			_, err := c.Writer.Write([]byte(string("!\n"))) // newline because tools like curl linebuffer
+			if err != nil {
+				errReq.Update(1)
+				return
+			}
 		}
 	}
 }

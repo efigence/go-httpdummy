@@ -4,11 +4,10 @@ import (
 	"embed"
 	"github.com/efigence/go-httpdummy/web"
 	"github.com/efigence/go-mon"
-	"os"
-
 	"github.com/urfave/cli"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
 )
 
 var version string
@@ -75,6 +74,7 @@ func main() {
 			EnvVar: "LISTEN_ADDR",
 		},
 	}
+
 	app.Action = func(c *cli.Context) error {
 		if c.Bool("help") {
 			cli.ShowAppHelp(c)
