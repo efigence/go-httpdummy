@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -78,6 +79,7 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	})
 	r.GET("/slow/:duration", w.SlowRequest)
 	r.POST("/post", w.PostSink)
+	r.POST("/post/:duration", w.PostSink)
 	r.NoRoute(func(c *gin.Context) {
 		c.HTML(http.StatusNotFound, "404.tmpl", gin.H{
 			"notfound": c.Request.URL.Path,
@@ -136,17 +138,55 @@ func (b *WebBackend) SlowRequest(c *gin.Context) {
 }
 
 func (b *WebBackend) PostSink(c *gin.Context) {
+	duration := c.Param("duration")
+	interval, err := time.ParseDuration(duration)
+	if err != nil && len(duration) > 0 {
+		c.HTML(
+			http.StatusBadRequest, "error.tmpl",
+			gin.H{"msg": fmt.Sprintf("bad time: %s", err)})
+		return
+	}
+	size, err := strconv.Atoi(c.Request.Header.Get("content-length"))
+	b.l.Infof("content size: %s", size)
 	body := c.Request.Body
 	defer body.Close()
-	var err error
 	readCtr := 0
 	buf := make([]byte, 1024)
-	for err == nil {
-		n, _ := body.Read(buf)
-		n = n + readCtr
-		if n == 0 {
-			return
+	divider := size / (10 * len(buf))
+	if divider < 0 {
+		divider = 1
+	}
+	var n int
+	err = nil
+	// duplicate just for ugly optimization
+	if interval.Nanoseconds() > 0 {
+		idx := 0
+		for err == nil {
+			idx++
+			n, err = body.Read(buf)
+			readCtr = readCtr + n
+			if n == 0 {
+				break
+			}
+			idx++
+			if idx%divider == 0 {
+				//c.Writer.Write([]byte("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"))
+				v := []byte(fmt.Sprintf("progress %d/%d\n", readCtr, size))
+				c.Writer.Write(v)
+				c.Writer.Flush()
+			}
+			time.Sleep(interval)
+		}
+	} else {
+		for err == nil {
+			n, err = body.Read(buf)
+			readCtr = readCtr + n
+			if n == 0 {
+				break
+			}
 		}
 	}
-	c.
+
+	c.String(http.StatusOK, fmt.Sprintf("received %d bytes", readCtr))
+
 }
