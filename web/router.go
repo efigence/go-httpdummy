@@ -77,6 +77,7 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 		})
 	})
 	r.GET("/slow/:duration", w.SlowRequest)
+	r.POST("/post", w.PostSink)
 	r.NoRoute(func(c *gin.Context) {
 		c.HTML(http.StatusNotFound, "404.tmpl", gin.H{
 			"notfound": c.Request.URL.Path,
@@ -125,10 +126,27 @@ func (b *WebBackend) SlowRequest(c *gin.Context) {
 		default:
 			time.Sleep(waitInterval)
 			_, err := c.Writer.Write([]byte(string("!\n"))) // newline because tools like curl linebuffer
+			c.Writer.Flush()
 			if err != nil {
 				errReq.Update(1)
 				return
 			}
 		}
 	}
+}
+
+func (b *WebBackend) PostSink(c *gin.Context) {
+	body := c.Request.Body
+	defer body.Close()
+	var err error
+	readCtr := 0
+	buf := make([]byte, 1024)
+	for err == nil {
+		n, _ := body.Read(buf)
+		n = n + readCtr
+		if n == 0 {
+			return
+		}
+	}
+	c.
 }

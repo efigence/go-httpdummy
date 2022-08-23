@@ -11,3 +11,7 @@ a, a:hover {
   color: aqua;
 }
 
+.comment {
+  color: #115599;
+  font-family: sans-serif;
+}
