@@ -170,7 +170,6 @@ func (b *WebBackend) PostSink(c *gin.Context) {
 			}
 			idx++
 			if idx%divider == 0 {
-				//c.Writer.Write([]byte("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"))
 				v := []byte(fmt.Sprintf("progress %d/%d\n", readCtr, size))
 				c.Writer.Write(v)
 				c.Writer.Flush()
@@ -187,6 +186,6 @@ func (b *WebBackend) PostSink(c *gin.Context) {
 		}
 	}
 
-	c.String(http.StatusOK, fmt.Sprintf("received %d bytes", readCtr))
+	c.String(http.StatusOK, fmt.Sprintf("received %d bytes\n", readCtr))
 
 }
