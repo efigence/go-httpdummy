@@ -59,8 +59,8 @@ func main() {
 	// register internal stats
 	mon.RegisterGcStats()
 	app := cli.NewApp()
-	app.Name = "foobar"
-	app.Description = "do foo to bar"
+	app.Name = "httpdummy"
+	app.Description = "dummy http server with some diagnostic paths"
 	app.Version = version
 	app.HideHelp = true
 	log.Errorf("Starting %s version: %s", app.Name, version)

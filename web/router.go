@@ -16,6 +16,7 @@ import (
 
 var inflightReq = mon.GlobalRegistry.MustRegister("conn.inflight", mon.NewRelativeIntegerGauge())
 var errReq = mon.GlobalRegistry.MustRegister("conn.err", mon.NewCounter())
+var rateReq = mon.GlobalRegistry.MustRegister("conn.rate", mon.NewEWMARate(time.Second*10))
 
 type WebBackend struct {
 	l   *zap.SugaredLogger
@@ -56,6 +57,9 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	// basic logging to stdout
 	//r.Use(gin.LoggerWithWriter(os.Stdout))
 	r.Use(gin.Recovery())
+	r.Use(func(c *gin.Context) {
+		rateReq.Update(1)
+	})
 
 	// monitoring endpoints
 	r.GET("/_status/health", gin.WrapF(mon.HandleHealthcheck))
@@ -147,13 +151,12 @@ func (b *WebBackend) PostSink(c *gin.Context) {
 		return
 	}
 	size, err := strconv.Atoi(c.Request.Header.Get("content-length"))
-	b.l.Infof("content size: %s", size)
 	body := c.Request.Body
 	defer body.Close()
 	readCtr := 0
 	buf := make([]byte, 1024)
 	divider := size / (10 * len(buf))
-	if divider < 0 {
+	if divider < 1 {
 		divider = 1
 	}
 	var n int
@@ -168,7 +171,6 @@ func (b *WebBackend) PostSink(c *gin.Context) {
 			if n == 0 {
 				break
 			}
-			idx++
 			if idx%divider == 0 {
 				v := []byte(fmt.Sprintf("progress %d/%d\n", readCtr, size))
 				c.Writer.Write(v)
