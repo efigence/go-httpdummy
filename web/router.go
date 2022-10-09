@@ -28,6 +28,7 @@ type Config struct {
 	Logger          *zap.SugaredLogger `yaml:"-"`
 	ListenAddr      string             `yaml:"listen_addr"`
 	LogHTTPRequests bool               `yaml:"log_http_requests"`
+	Code404As200    bool               `yaml:"code_404_as_200"`
 }
 
 func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
@@ -85,9 +86,16 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	r.POST("/post", w.PostSink)
 	r.POST("/post/:duration", w.PostSink)
 	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "404.tmpl", gin.H{
-			"notfound": c.Request.URL.Path,
-		})
+		if cfg.Code404As200 {
+			c.HTML(http.StatusOK, "404.tmpl", gin.H{
+				"notfound": c.Request.URL.Path,
+				"msg":      "pretending 404 is 200",
+			})
+		} else {
+			c.HTML(http.StatusNotFound, "404.tmpl", gin.H{
+				"notfound": c.Request.URL.Path,
+			})
+		}
 	})
 	r.GET("/routes", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "routes.tmpl", r.Routes())

@@ -73,6 +73,10 @@ func main() {
 			Usage:  "Listen addr",
 			EnvVar: "LISTEN_ADDR",
 		},
+		cli.BoolFlag{
+			Name:  "notfound-as-ok",
+			Usage: "pretend 404 is 200",
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
@@ -84,6 +88,7 @@ func main() {
 			Logger:          log,
 			ListenAddr:      c.String("listen-addr"),
 			LogHTTPRequests: c.Bool("log-http-requests"),
+			Code404As200:    c.Bool("notfound-as-ok"),
 		}, webContent)
 		if err != nil {
 			log.Panicf("error starting web listener: %s", err)
