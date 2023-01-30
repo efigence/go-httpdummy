@@ -102,6 +102,7 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	r.GET("/routes", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "routes.tmpl", r.Routes())
 	})
+	mon.GlobalStatus.Update(mon.Ok, "httptest running")
 	return &w, nil
 }
 
