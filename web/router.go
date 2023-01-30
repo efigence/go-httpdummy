@@ -79,8 +79,9 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	})
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title":      c.Request.RemoteAddr,
+			"title":      "dummy http backend",
 			"RemoteAddr": c.Request.RemoteAddr,
+			"IP":         c.ClientIP(),
 			"host":       c.Request.Host,
 		})
 	})
