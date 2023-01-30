@@ -79,7 +79,9 @@ func New(cfg Config, webFS fs.FS) (backend *WebBackend, err error) {
 	})
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title": c.Request.RemoteAddr,
+			"title":      c.Request.RemoteAddr,
+			"RemoteAddr": c.Request.RemoteAddr,
+			"host":       c.Request.Host,
 		})
 	})
 	r.GET("/slow/:duration", w.SlowRequest)
